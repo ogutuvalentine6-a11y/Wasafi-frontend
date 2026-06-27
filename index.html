@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wasafi Hotel — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8D49A;
+    --gold-dark: #8B6914;
+    --deep: #0D1B2A;
+    --deep2: #1A2E42;
+    --surface: #F7F4EF;
+    --white: #FFFFFF;
+    --text: #1a1a1a;
+    --muted: #6B7280;
+    --accent: #2C5F7A;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #2980b9;
+    --sidebar-w: 260px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── AUTH GUARD ── */
+  #guardOverlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: var(--deep);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 1rem;
+  }
+  .guard-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .guard-text { font-size: 13px; color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--deep);
+    min-height: 100vh;
+    position: fixed; top: 0; left: 0;
+    display: flex; flex-direction: column;
+    z-index: 100;
+    border-right: 1px solid rgba(201,168,76,0.1);
+  }
+  .sidebar-brand {
+    padding: 1.75rem 1.5rem;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none;
+  }
+  .brand-emblem {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 600; color: white;
+    flex-shrink: 0;
+  }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--gold); letter-spacing: 2px; line-height: 1;
+  }
+  .brand-sub {
+    font-size: 9px; color: rgba(255,255,255,0.35);
+    letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px;
+  }
+
+  /* nav */
+  .sidebar-nav {
+    flex: 1; padding: 1.5rem 0; overflow-y: auto;
+  }
+  .nav-section-label {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.25); padding: 0 1.5rem; margin-bottom: 6px; margin-top: 1.25rem;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 1.5rem; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55);
+    transition: all 0.2s; text-decoration: none; position: relative;
+  }
+  .nav-item i { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
+  .nav-item:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+  .nav-item.active {
+    color: var(--gold);
+    background: rgba(201,168,76,0.08);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--gold); border-radius: 0 2px 2px 0;
+  }
+  .nav-badge {
+    margin-left: auto; background: var(--gold); color: var(--deep);
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  }
+  .nav-badge.red { background: var(--danger); color: white; }
+
+  .sidebar-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(201,168,76,0.1);
+  }
+  .admin-chip {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
+  }
+  .admin-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .admin-info { flex: 1; overflow: hidden; }
+  .admin-name {
+    font-size: 13px; font-weight: 600; color: white;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .admin-role { font-size: 10px; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; }
+  .btn-logout {
+    width: 100%; padding: 9px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;
+    color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+    justify-content: center; gap: 8px; text-decoration: none;
+  }
+  .btn-logout:hover { background: rgba(231,76,60,0.15); border-color: rgba(231,76,60,0.4); color: #e74c3c; }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    display: flex; flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* top bar */
+  .topbar {
+    background: white;
+    border-bottom: 1px solid #e8e0d0;
+    padding: 0 2rem;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-greeting {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 300; color: var(--deep); line-height: 1;
+  }
+  .topbar-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .topbar-right { display: flex; align-items: center; gap: 1rem; }
+  .topbar-icon-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid #e8e0d0; background: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; color: var(--muted);
+    position: relative;
+  }
+  .topbar-icon-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .notif-dot {
+    position: absolute; top: 5px; right: 5px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); border: 2px solid white;
+  }
+  .topbar-search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; background: var(--surface);
+    border: 1px solid #e8e0d0; border-radius: 20px;
+    font-size: 13px; color: var(--muted);
+    cursor: pointer; transition: all 0.2s; min-width: 180px;
+  }
+  .topbar-search:hover { border-color: var(--gold); }
+
+  /* ── CONTENT ── */
+  .content { padding: 2rem; flex: 1; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  .kpi-card {
+    background: white; border-radius: 6px;
+    padding: 1.5rem; border: 1px solid #e8e0d0;
+    transition: all 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+  .kpi-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .kpi-icon {
+    width: 40px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .kpi-icon.gold { background: rgba(201,168,76,0.12); color: var(--gold-dark); }
+  .kpi-icon.blue { background: rgba(44,95,122,0.12); color: var(--accent); }
+  .kpi-icon.green { background: rgba(39,174,96,0.12); color: var(--success); }
+  .kpi-icon.red { background: rgba(231,76,60,0.12); color: var(--danger); }
+  .kpi-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px; font-weight: 600; color: var(--deep);
+    line-height: 1;
+  }
+  .kpi-change {
+    font-size: 12px; margin-top: 6px; display: flex; align-items: center; gap: 4px;
+  }
+  .kpi-change.up { color: var(--success); }
+  .kpi-change.down { color: var(--danger); }
+  .kpi-change.neutral { color: var(--muted); }
+
+  /* ── GRID 2 COL ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .card {
+    background: white; border-radius: 6px;
+    border: 1px solid #e8e0d0; overflow: hidden;
+  }
+  .card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f0e8d8;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 600; color: var(--deep);
+  }
+  .card-action {
+    font-size: 12px; color: var(--gold-dark); cursor: pointer;
+    font-weight: 500; text-decoration: none; transition: color 0.2s;
+  }
+  .card-action:hover { color: var(--gold); }
+  .card-body { padding: 1.5rem; }
+
+  /* ── BOOKINGS TABLE ── */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    padding: 0 1rem 12px; text-align: left; white-space: nowrap;
+  }
+  tbody tr {
+    border-top: 1px solid #f5efe4;
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: #FDFBF8; }
+  tbody td {
+    padding: 13px 1rem; font-size: 13px; color: var(--text);
+    vertical-align: middle;
+  }
+  .td-guest { display: flex; align-items: center; gap: 10px; }
+  .td-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .td-name { font-weight: 500; }
+  .td-room { color: var(--muted); font-size: 12px; }
+
+  /* status badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .badge-confirmed { background: rgba(39,174,96,0.1); color: #27ae60; }
+  .badge-pending   { background: rgba(243,156,18,0.1); color: #f39c12; }
+  .badge-cancelled { background: rgba(231,76,60,0.1);  color: #e74c3c; }
+  .badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+
+  .action-btns { display: flex; gap: 6px; }
+  .btn-tbl {
+    padding: 5px 12px; border-radius: 3px; font-size: 11px;
+    font-weight: 600; cursor: pointer; border: none;
+    transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn-tbl-view { background: var(--surface); color: var(--deep); border: 1px solid #e8e0d0; }
+  .btn-tbl-view:hover { border-color: var(--gold); color: var(--gold-dark); }
+  .btn-tbl-confirm { background: rgba(39,174,96,0.1); color: var(--success); }
+  .btn-tbl-confirm:hover { background: var(--success); color: white; }
+
+  /* ── ROOM STATUS ── */
+  .room-list { display: flex; flex-direction: column; gap: 10px; }
+  .room-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 4px;
+    border: 1px solid #f0e8d8; transition: all 0.2s;
+  }
+  .room-row:hover { border-color: var(--gold-light); background: #FDFBF8; }
+  .room-num {
+    width: 36px; height: 36px; border-radius: 4px;
+    background: var(--deep); color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px; font-weight: 600; flex-shrink: 0;
+  }
+  .room-details { flex: 1; }
+  .room-row-name { font-size: 13px; font-weight: 600; color: var(--deep); }
+  .room-row-type { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .room-status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-available { background: var(--success); }
+  .dot-occupied  { background: var(--danger); }
+  .dot-cleaning  { background: var(--warning); }
+
+  /* ── REVENUE BARS (css-only chart) ── */
+  .rev-chart { padding: 0.5rem 0; }
+  .rev-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .rev-month { font-size: 12px; color: var(--muted); width: 32px; flex-shrink: 0; }
+  .rev-bar-wrap { flex: 1; background: #f0e8d8; border-radius: 2px; height: 10px; overflow: hidden; }
+  .rev-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dark), var(--gold)); transition: width 1s ease; }
+  .rev-val { font-size: 12px; color: var(--deep); font-weight: 600; width: 60px; text-align: right; flex-shrink: 0; }
+
+  /* ── ACTIVITY FEED ── */
+  .activity-list { display: flex; flex-direction: column; }
+  .activity-item {
+    display: flex; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid #f5efe4;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot-wrap {
+    display: flex; flex-direction: column; align-items: center; padding-top: 4px;
+  }
+  .a-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0;
+  }
+  .a-line { flex: 1; width: 1px; background: #f0e8d8; margin-top: 4px; }
+  .activity-text { flex: 1; }
+  .a-title { font-size: 13px; color: var(--deep); font-weight: 500; line-height: 1.4; }
+  .a-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── QUICK ACTIONS ── */
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .quick-btn {
+    background: white; border: 1px solid #e8e0d0;
+    border-radius: 6px; padding: 1.25rem 1rem;
+    cursor: pointer; transition: all 0.2s;
+    text-align: center; text-decoration: none;
+  }
+  .quick-btn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+  .quick-btn i { font-size: 22px; color: var(--gold-dark); margin-bottom: 8px; display: block; }
+  .quick-btn span { font-size: 12px; font-weight: 600; color: var(--deep); letter-spacing: 0.5px; display: block; }
+
+  /* ── NOTIFICATION TOAST ── */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--deep); color: white;
+    padding: 14px 20px; border-radius: 6px;
+    border-left: 4px solid var(--gold);
+    font-size: 13px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    transform: translateX(120%); transition: transform 0.4s ease;
+    z-index: 999; max-width: 320px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast i { color: var(--gold); flex-shrink: 0; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(13,27,42,0.7);
+    backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 500;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white; border-radius: 8px; width: 90%; max-width: 520px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+  }
+  .modal-head {
+    padding: 1.5rem 1.5rem 1.25rem;
+    border-bottom: 1px solid #f0e8d8;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-head h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; font-weight: 600; color: var(--deep);
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e0d0;
+    background: none; cursor: pointer; color: var(--muted); font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+  .modal-body { padding: 1.5rem; }
+  .modal-field { margin-bottom: 1.25rem; }
+  .modal-field label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid #d9d0be; border-radius: 4px;
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text);
+    background: #FDFBF8; outline: none; transition: border-color 0.2s;
+  }
+  .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus {
+    border-color: var(--gold);
+  }
+  .modal-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .modal-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid #f0e8d8;
+    display: flex; gap: 12px; justify-content: flex-end;
+  }
+  .btn-cancel {
+    padding: 10px 24px; background: none; border: 1px solid #d9d0be;
+    border-radius: 4px; font-size: 12px; font-weight: 600;
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--danger); color: var(--danger); }
+  .btn-save {
+    padding: 10px 28px; background: var(--gold); border: none;
+    border-radius: 4px; font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--deep); cursor: pointer; transition: all 0.2s;
+  }
+  .btn-save:hover { background: var(--gold-light); }
+</style>
+</head>
+<body>
+
+<!-- AUTH GUARD -->
+<div id="guardOverlay">
+  <div class="guard-spinner"></div>
+  <div class="guard-text">Verifying access</div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="wasafi_hotel.html" class="sidebar-brand">
+    <div class="brand-emblem">W</div>
+    <div class="brand-text">
+      <span class="brand-name">WASAFI</span>
+      <span class="brand-sub">Admin Console</span>
+    </div>
+  </a>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" onclick="switchSection('dashboard')">
+      <i class="fas fa-th-large"></i> Dashboard
+    </a>
+
+    <div class="nav-section-label">Operations</div>
+    <a class="nav-item" onclick="switchSection('bookings')">
+      <i class="fas fa-calendar-check"></i> Bookings
+      <span class="nav-badge red">4</span>
+    </a>
+    <a class="nav-item" onclick="switchSection('rooms')">
+      <i class="fas fa-door-open"></i> Rooms & Suites
+    </a>
+    <a class="nav-item" onclick="switchSection('guests')">
+      <i class="fas fa-user-friends"></i> Guests
+    </a>
+
+    <div class="nav-section-label">Finance</div>
+    <a class="nav-item" onclick="switchSection('revenue')">
+      <i class="fas fa-chart-line"></i> Revenue
+    </a>
+    <a class="nav-item" onclick="switchSection('invoices')">
+      <i class="fas fa-file-invoice-dollar"></i> Invoices
+    </a>
+
+    <div class="nav-section-label">Content</div>
+    <a class="nav-item" onclick="switchSection('gallery')">
+      <i class="fas fa-images"></i> Gallery
+    </a>
+    <a class="nav-item" onclick="switchSection('promotions')">
+      <i class="fas fa-tag"></i> Promotions
+    </a>
+
+    <div class="nav-section-label">System</div>
+    <a class="nav-item" onclick="switchSection('staff')">
+      <i class="fas fa-users-cog"></i> Staff Accounts
+    </a>
+    <a class="nav-item" onclick="switchSection('settings')">
+      <i class="fas fa-cog"></i> Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-chip">
+      <div class="admin-avatar" id="adminInitial">A</div>
+      <div class="admin-info">
+        <div class="admin-name" id="adminName">Administrator</div>
+        <div class="admin-role">Admin</div>
+      </div>
+    </div>
+    <a class="btn-logout" href="index.html" onclick="handleLogout()">
+      <i class="fas fa-sign-out-alt"></i> Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-greeting" id="topGreeting">Good morning, Admin</span>
+      <span class="topbar-date" id="topDate">Loading date…</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-search">
+        <i class="fas fa-search" style="font-size:13px;"></i>
+        Quick search…
+      </div>
+      <div class="topbar-icon-btn" onclick="showToast('No new messages')">
+        <i class="fas fa-envelope"></i>
+      </div>
+      <div class="topbar-icon-btn" onclick="showToast('3 new notifications')">
+        <i class="fas fa-bell"></i>
+        <span class="notif-dot"></span>
+      </div>
+      <a href="wasafi_hotel.html" class="topbar-icon-btn" title="View live site">
+        <i class="fas fa-external-link-alt"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Total Bookings</span>
+          <div class="kpi-icon blue"><i class="fas fa-calendar-check"></i></div>
+        </div>
+        <div class="kpi-value">284</div>
+        <div class="kpi-change up"><i class="fas fa-arrow-up"></i> 12% vs last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Revenue (KES)</span>
+          <div class="kpi-icon gold"><i class="fas fa-coins"></i></div>
+        </div>
+        <div class="kpi-value">4.2M</div>
+        <div class="kpi-change up"><i class="fas fa-arrow-up"></i> 8% vs last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Occupancy Rate</span>
+          <div class="kpi-icon green"><i class="fas fa-bed"></i></div>
+        </div>
+        <div class="kpi-value">78%</div>
+        <div class="kpi-change neutral"><i class="fas fa-minus"></i> Same as last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Pending Bookings</span>
+          <div class="kpi-icon red"><i class="fas fa-hourglass-half"></i></div>
+        </div>
+        <div class="kpi-value">4</div>
+        <div class="kpi-change down"><i class="fas fa-arrow-up"></i> Needs attention</div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="quick-grid">
+      <div class="quick-btn" onclick="openModal('new-booking')">
+        <i class="fas fa-plus-circle"></i>
+        <span>New Booking</span>
+      </div>
+      <div class="quick-btn" onclick="openModal('add-room')">
+        <i class="fas fa-door-open"></i>
+        <span>Add Room</span>
+      </div>
+      <div class="quick-btn" onclick="showToast('Generating report…')">
+        <i class="fas fa-file-export"></i>
+        <span>Export Report</span>
+      </div>
+      <div class="quick-btn" onclick="openModal('invite-staff')">
+        <i class="fas fa-user-plus"></i>
+        <span>Invite Staff</span>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="dash-grid">
+      <!-- BOOKINGS TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Bookings</span>
+          <a class="card-action" onclick="switchSection('bookings')">View all →</a>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Guest</th>
+                <th>Room</th>
+                <th>Check-in</th>
+                <th>Nights</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="td-guest"><div class="td-avatar">AM</div><div><div class="td-name">Amira Mbeki</div><div class="td-room">amira@email.com</div></div></div></td>
+                <td>Ocean Suite</td>
+                <td>25 Jun 2026</td>
+                <td>3</td>
+                <td><span class="badge badge-confirmed">Confirmed</span></td>
+                <td><div class="action-btns"><button class="btn-tbl btn-tbl-view" onclick="showToast('Viewing Amira Mbeki')">View</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="td-guest"><div class="td-avatar">JO</div><div><div class="td-name">James Odhiambo</div><div class="td-room">jodhiambo@email.com</div></div></div></td>
+                <td>Deluxe King</td>
+                <td>26 Jun 2026</td>
+                <td>2</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td><div class="action-btns"><button class="btn-tbl btn-tbl-view" onclick="showToast('Viewing James Odhiambo')">View</button><button class="btn-tbl btn-tbl-confirm" onclick="confirmBooking(this)">Confirm</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="td-guest"><div class="td-avatar">FN</div><div><div class="td-name">Fatuma Njeri</div><div class="td-room">fatuma@email.com</div></div></div></td>
+                <td>Presidential Suite</td>
+                <td>28 Jun 2026</td>
+                <td>5</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td><div class="action-btns"><button class="btn-tbl btn-tbl-view" onclick="showToast('Viewing Fatuma Njeri')">View</button><button class="btn-tbl btn-tbl-confirm" onclick="confirmBooking(this)">Confirm</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="td-guest"><div class="td-avatar">RK</div><div><div class="td-name">Rajesh Kumar</div><div class="td-room">rajesh@email.com</div></div></div></td>
+                <td>Garden Villa</td>
+                <td>30 Jun 2026</td>
+                <td>7</td>
+                <td><span class="badge badge-confirmed">Confirmed</span></td>
+                <td><div class="action-btns"><button class="btn-tbl btn-tbl-view" onclick="showToast('Viewing Rajesh Kumar')">View</button></div></td>
+              </tr>
+              <tr>
+                <td><div class="td-guest"><div class="td-avatar">SM</div><div><div class="td-name">Sylvia Mwangi</div><div class="td-room">sylvia@email.com</div></div></div></td>
+                <td>Standard Double</td>
+                <td>2 Jul 2026</td>
+                <td>2</td>
+                <td><span class="badge badge-cancelled">Cancelled</span></td>
+                <td><div class="action-btns"><button class="btn-tbl btn-tbl-view" onclick="showToast('Viewing Sylvia Mwangi')">View</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+        <!-- ROOM STATUS -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Room Status</span>
+            <a class="card-action" onclick="switchSection('rooms')">Manage →</a>
+          </div>
+          <div class="card-body">
+            <div class="room-list">
+              <div class="room-row">
+                <div class="room-num">101</div>
+                <div class="room-details">
+                  <div class="room-row-name">Ocean Suite</div>
+                  <div class="room-row-type">Suite</div>
+                </div>
+                <div class="room-status-dot dot-occupied" title="Occupied"></div>
+              </div>
+              <div class="room-row">
+                <div class="room-num">205</div>
+                <div class="room-details">
+                  <div class="room-row-name">Deluxe King</div>
+                  <div class="room-row-type">Deluxe</div>
+                </div>
+                <div class="room-status-dot dot-available" title="Available"></div>
+              </div>
+              <div class="room-row">
+                <div class="room-num">312</div>
+                <div class="room-details">
+                  <div class="room-row-name">Presidential Suite</div>
+                  <div class="room-row-type">Suite</div>
+                </div>
+                <div class="room-status-dot dot-cleaning" title="Being cleaned"></div>
+              </div>
+              <div class="room-row">
+                <div class="room-num">418</div>
+                <div class="room-details">
+                  <div class="room-row-name">Garden Villa</div>
+                  <div class="room-row-type">Deluxe</div>
+                </div>
+                <div class="room-status-dot dot-available" title="Available"></div>
+              </div>
+              <div class="room-row">
+                <div class="room-num">220</div>
+                <div class="room-details">
+                  <div class="room-row-name">Standard Double</div>
+                  <div class="room-row-type">Standard</div>
+                </div>
+                <div class="room-status-dot dot-occupied" title="Occupied"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1rem;font-size:11px;color:var(--muted);">
+              <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;"></span>Available</span>
+              <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block;"></span>Occupied</span>
+              <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--warning);display:inline-block;"></span>Cleaning</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM GRID -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+
+      <!-- REVENUE CHART -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Monthly Revenue</span>
+          <a class="card-action" onclick="switchSection('revenue')">Full report →</a>
+        </div>
+        <div class="card-body">
+          <div class="rev-chart">
+            <div class="rev-row"><span class="rev-month">Jan</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:55%"></div></div><span class="rev-val">2.3M</span></div>
+            <div class="rev-row"><span class="rev-month">Feb</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:62%"></div></div><span class="rev-val">2.6M</span></div>
+            <div class="rev-row"><span class="rev-month">Mar</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:71%"></div></div><span class="rev-val">3.0M</span></div>
+            <div class="rev-row"><span class="rev-month">Apr</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:80%"></div></div><span class="rev-val">3.4M</span></div>
+            <div class="rev-row"><span class="rev-month">May</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:88%"></div></div><span class="rev-val">3.7M</span></div>
+            <div class="rev-row"><span class="rev-month">Jun</span><div class="rev-bar-wrap"><div class="rev-bar" style="width:100%"></div></div><span class="rev-val">4.2M</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY FEED -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Activity</span>
+          <a class="card-action">Refresh</a>
+        </div>
+        <div class="card-body">
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-dot-wrap"><div class="a-dot"></div><div class="a-line"></div></div>
+              <div class="activity-text">
+                <div class="a-title">New booking from Amira Mbeki — Ocean Suite, 3 nights</div>
+                <div class="a-meta">2 minutes ago</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot-wrap"><div class="a-dot" style="background:var(--success)"></div><div class="a-line"></div></div>
+              <div class="activity-text">
+                <div class="a-title">Payment confirmed — Rajesh Kumar, KES 42,000</div>
+                <div class="a-meta">18 minutes ago</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot-wrap"><div class="a-dot" style="background:var(--warning)"></div><div class="a-line"></div></div>
+              <div class="activity-text">
+                <div class="a-title">Room 312 marked for cleaning by housekeeping</div>
+                <div class="a-meta">45 minutes ago</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot-wrap"><div class="a-dot" style="background:var(--danger)"></div><div class="a-line"></div></div>
+              <div class="activity-text">
+                <div class="a-title">Booking cancelled — Sylvia Mwangi, Standard Double</div>
+                <div class="a-meta">1 hour ago</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot-wrap"><div class="a-dot"></div></div>
+              <div class="activity-text">
+                <div class="a-title">New staff account created — Hana Wambua (Receptionist)</div>
+                <div class="a-meta">3 hours ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODAL: New Booking -->
+<div class="modal-overlay" id="modal-new-booking">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>New Booking</h3>
+      <button class="modal-close" onclick="closeModal('new-booking')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-2col">
+        <div class="modal-field"><label>Guest Name</label><input type="text" placeholder="Full name"></div>
+        <div class="modal-field"><label>Email</label><input type="email" placeholder="guest@email.com"></div>
+      </div>
+      <div class="modal-field"><label>Room Type</label>
+        <select>
+          <option>Ocean Suite — KES 18,000/night</option>
+          <option>Deluxe King — KES 12,000/night</option>
+          <option>Presidential Suite — KES 28,000/night</option>
+          <option>Garden Villa — KES 22,000/night</option>
+          <option>Standard Double — KES 8,500/night</option>
+        </select>
+      </div>
+      <div class="modal-2col">
+        <div class="modal-field"><label>Check-in</label><input type="date"></div>
+        <div class="modal-field"><label>Check-out</label><input type="date"></div>
+      </div>
+      <div class="modal-field"><label>Guests</label><input type="number" value="2" min="1" max="6"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('new-booking')">Cancel</button>
+      <button class="btn-save" onclick="saveModal('new-booking', 'Booking created successfully!')">Create Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Room -->
+<div class="modal-overlay" id="modal-add-room">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Room</h3>
+      <button class="modal-close" onclick="closeModal('add-room')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-2col">
+        <div class="modal-field"><label>Room Number</label><input type="text" placeholder="e.g. 305"></div>
+        <div class="modal-field"><label>Room Name</label><input type="text" placeholder="e.g. Coral Suite"></div>
+      </div>
+      <div class="modal-2col">
+        <div class="modal-field"><label>Type</label>
+          <select><option>Standard</option><option>Deluxe</option><option>Suite</option></select>
+        </div>
+        <div class="modal-field"><label>Price / Night (KES)</label><input type="number" placeholder="15000"></div>
+      </div>
+      <div class="modal-field"><label>Max Guests</label><input type="number" value="2" min="1" max="8"></div>
+      <div class="modal-field"><label>Amenities (comma-separated)</label><input type="text" placeholder="WiFi, AC, Pool, Balcony"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('add-room')">Cancel</button>
+      <button class="btn-save" onclick="saveModal('add-room', 'Room added successfully!')">Add Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Invite Staff -->
+<div class="modal-overlay" id="modal-invite-staff">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Invite Staff Member</h3>
+      <button class="modal-close" onclick="closeModal('invite-staff')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-2col">
+        <div class="modal-field"><label>Full Name</label><input type="text" placeholder="Staff name"></div>
+        <div class="modal-field"><label>Email</label><input type="email" placeholder="staff@wasafi.com"></div>
+      </div>
+      <div class="modal-field"><label>Role</label>
+        <select>
+          <option value="guest">Receptionist (guest)</option>
+          <option value="guest">Housekeeping (guest)</option>
+          <option value="guest">F&B Staff (guest)</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('invite-staff')">Cancel</button>
+      <button class="btn-save" onclick="saveModal('invite-staff', 'Invitation sent!')">Send Invite</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <i class="fas fa-check-circle"></i>
+  <span id="toastMsg">Action completed.</span>
+</div>
+
+<script>
+  /* ─────────────────────────────────────────────────
+   * AUTH GUARD
+   * Checks sessionStorage for a valid token + admin role.
+   * Replace with real JWT verification against /api/auth/me
+   * ───────────────────────────────────────────────── */
+  (function authGuard() {
+    const token = sessionStorage.getItem('wasafi_token');
+    const userRaw = sessionStorage.getItem('wasafi_user');
+
+    if (!token || !userRaw) {
+      // Not logged in at all
+      window.location.href = 'index.html';
+      return;
+    }
+
+    let user;
+    try { user = JSON.parse(userRaw); } catch { window.location.href = 'index.html'; return; }
+
+    if (user.role !== 'admin') {
+      // Logged in but not admin
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // All good — reveal dashboard
+    const guard = document.getElementById('guardOverlay');
+    setTimeout(() => {
+      guard.style.opacity = '0';
+      guard.style.transition = 'opacity 0.4s';
+      setTimeout(() => guard.remove(), 400);
+    }, 400);
+
+    // Personalise
+    const name = user.name || 'Admin';
+    const initial = name.charAt(0).toUpperCase();
+    document.getElementById('adminName').textContent = name;
+    document.getElementById('adminInitial').textContent = initial;
+
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('topGreeting').textContent = `${greet}, ${name}`;
+  })();
+
+  /* Date */
+  const now = new Date();
+  document.getElementById('topDate').textContent = now.toLocaleDateString('en-KE', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  /* ── NAVIGATION ── */
+  function switchSection(section) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    event && event.currentTarget && event.currentTarget.classList.add('active');
+    showToast(`Navigating to ${section.charAt(0).toUpperCase() + section.slice(1)}…`);
+  }
+
+  /* ── MODALS ── */
+  function openModal(id) {
+    document.getElementById('modal-' + id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById('modal-' + id).classList.remove('open');
+  }
+  function saveModal(id, msg) {
+    closeModal(id);
+    showToast(msg);
+  }
+  // Close on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+
+  /* ── TOAST ── */
+  let toastTimer;
+  function showToast(msg) {
+    clearTimeout(toastTimer);
+    document.getElementById('toastMsg').textContent = msg;
+    document.getElementById('toast').classList.add('show');
+    toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+  }
+
+  /* ── TABLE ACTIONS ── */
+  function confirmBooking(btn) {
+    const row = btn.closest('tr');
+    const nameTd = row.querySelector('.td-name').textContent;
+    const statusTd = row.querySelector('.badge');
+    statusTd.className = 'badge badge-confirmed';
+    statusTd.textContent = 'Confirmed';
+    btn.remove();
+    showToast(`Booking confirmed for ${nameTd}`);
+  }
+
+  /* ── LOGOUT ── */
+  function handleLogout() {
+    sessionStorage.removeItem('wasafi_token');
+    sessionStorage.removeItem('wasafi_user');
+  }
+</script>
+</body>
+</html>
